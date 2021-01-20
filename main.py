@@ -11,6 +11,7 @@ def get_mitigations(ext_id):
     mitigation_ids = common_utils.get_mitigations_from_html(res._content)
     print("Mitigation ids:", mitigation_ids)
 
+    print("Listing mitigation details:")
     for mit_id in mitigation_ids:
         common_utils.display_mitigation_by_ids(mit_id)
 

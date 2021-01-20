@@ -1,15 +1,21 @@
+import os
 import re
 import requests
 from bs4 import BeautifulSoup
 
 from stix2 import TAXIICollectionSource
 from stix2 import Filter
+from stix2 import CompositeDataSource
+from stix2 import MemoryStore
 from taxii2client.v20 import Server
 from taxii2client.v20 import Collection
 
 # globals
 TAXII_SERVER = "https://cti-taxii.mitre.org/taxii/"
 SUCCESS = (200,)
+DATA_SOURCE = None
+EXCLUDE_COLLECTIONS = ['PRE-ATT&CK']
+CS = CompositeDataSource()
 
 
 def execute(method, url, payload=None,
@@ -62,16 +68,6 @@ def get_mitigations_from_html(html_body):
     raw_data = soup.find_all(href=re.compile('mitigations/M\d+'))
     mitigations = list(map(extract_migration_ids, raw_data))
     return mitigations
-
-
-def get_collection_url_by_type(collections, atype="Enterprise"):
-    """
-    Get the collection url for given collection type
-    :param collections: list of collection objects
-    :param atype: type of collection Enterprise, Mobile etc
-    :return: url
-    """
-    return [x.url for x in collections if atype in x._title][0]
 
 
 def get_attack_url_by_id(ext_id):
@@ -132,9 +128,15 @@ def get_collection_src():
     Get collection src from collections objects provided by TAXII_SERVER
     :return: collection source object
     """
+    global CS
     server = Server(TAXII_SERVER)
-
-    collections = server.api_roots[0].collections
-    collection_url = get_collection_url_by_type(collections, atype="Enterprise")
-    src = TAXIICollectionSource(Collection(collection_url))
-    return src
+    collections = [c for c in server.api_roots[0].collections if c._title not in EXCLUDE_COLLECTIONS]
+    if CS.get_all_data_sources():
+        print("Reusing collections")
+        return CS
+    else:
+        print("Creating new collections")
+        for collection in collections:
+            print("Adding collection %s %s" % (collection._title, collection.id))
+            CS.add_data_source(TAXIICollectionSource(collection))
+        return CS
