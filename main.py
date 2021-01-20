@@ -24,5 +24,4 @@ def main():
 
 
 if __name__ == "__main__":
-    # get_mitigations("T1548")
     main()
