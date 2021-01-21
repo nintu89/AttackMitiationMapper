@@ -1,4 +1,3 @@
-import os
 import re
 import requests
 from bs4 import BeautifulSoup
@@ -6,9 +5,8 @@ from bs4 import BeautifulSoup
 from stix2 import TAXIICollectionSource
 from stix2 import Filter
 from stix2 import CompositeDataSource
-from stix2 import MemoryStore
 from taxii2client.v20 import Server
-from taxii2client.v20 import Collection
+
 
 # globals
 TAXII_SERVER = "https://cti-taxii.mitre.org/taxii/"
@@ -25,8 +23,8 @@ def execute(method, url, payload=None,
     :param method:  http method
     :param url: rest endpoint
     :param payload: body of request
-    :param user:
-    :param passowrd:
+    :param user: username for auth
+    :param password: password for auth
     :return:
     """
     headers = {'Content-Type': "text/html; charset=utf-8"}
@@ -50,13 +48,26 @@ def execute(method, url, payload=None,
     return response
 
 
+def get_mitigations(ext_id):
+    print("Finding mitigations for attack-id [%s]" % ext_id)
+    url = get_attack_url_by_id(ext_id)
+
+    res = execute('GET', url)
+
+    mitigation_ids = get_mitigations_from_html(res._content)
+    print("Mitigation ids:", mitigation_ids)
+
+    print("Listing mitigation details:")
+    for mit_id in mitigation_ids:
+        display_mitigation_by_ids(mit_id)
+
+
 def get_mitigations_from_html(html_body):
     """
     extract mitigations from html code
     :param html_body: html content
     :return:
     """
-
     def extract_migration_ids(data):
         match = re.search('\/mitigations\/(M\d+)', str(data))
         try:
